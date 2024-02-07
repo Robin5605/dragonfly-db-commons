@@ -6,7 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 from dragonfly_db_commons.models import Base
 
-DB_URL = os.getenv("DB_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432")
+DB_URL = os.getenv("DB_URL", "postgresql+psycopg://postgres:postgres@localhost:5432")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
