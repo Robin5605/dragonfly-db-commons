@@ -9,6 +9,7 @@ from operator import or_
 from typing import Optional
 
 from sqlalchemy import (
+    BigInteger,
     Column,
     DateTime,
     FetchedValue,
@@ -54,6 +55,37 @@ package_rules = Table(
     Column("rule_id", ForeignKey("rules.id"), primary_key=True),
 )
 
+class Package(Base):
+    """Represents a PyPI package"""
+
+    __tablename__: str = "packages"
+
+    name: Mapped[str] = mapped_column(primary_key=True)
+    scans: Mapped[list[Scan]] = relationship()
+
+subscriptions = Table(
+    "subscriptions",
+    Base.metadata,
+    Column("package_name", ForeignKey("packages.name"), primary_key=True),
+    Column("person_id", ForeignKey("people.id"), primary_key=True),
+)
+
+class Person(Base):
+    """Represents a person or entity interested in malicious package notifications"""
+
+    __tablename__: str = "people"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default_factory=uuid.uuid4,
+        init=False,
+    )
+
+    discord_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+    email_address: Mapped[Optional[str]]
+
+    scans: Mapped[list[Scan]] = relationship(secondary=subscriptions, back_populates="children")
 
 class Scan(Base):
     """The scans."""
@@ -68,7 +100,7 @@ class Scan(Base):
         init=False,
     )
 
-    name: Mapped[str] = mapped_column(default=None)
+    name: Mapped[str] = mapped_column(ForeignKey("packages.name"), default=None)
     version: Mapped[str] = mapped_column(default=None)
     status: Mapped[Status] = mapped_column(default=None)
 
@@ -76,6 +108,8 @@ class Scan(Base):
     inspector_url: Mapped[Optional[str]] = mapped_column(default=None)
     rules: Mapped[list[Rule]] = relationship(secondary=package_rules, default_factory=list)
     download_urls: Mapped[list[DownloadURL]] = relationship(default_factory=list)
+
+    people: Mapped[list[Person]] = relationship(secondary=subscriptions, back_populates="parents")
 
     queued_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
